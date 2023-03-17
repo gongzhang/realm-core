@@ -647,12 +647,12 @@ TEST_IF(Upgrade_Database_22, REALM_MAX_BPNODE_SIZE == 4 || REALM_MAX_BPNODE_SIZE
 #endif // TEST_READ_UPGRADE_MODE
 }
 
-
+// FIXME: add migration test for decimal128
 TEST_IF(Upgrade_Database_23, REALM_MAX_BPNODE_SIZE == 4 || REALM_MAX_BPNODE_SIZE == 1000)
 {
     // We should test that we can convert backlink arrays bigger that node size to BPlusTrees
     std::string path = test_util::get_test_resource_path() + "test_upgrade_database_" +
-                       util::to_string(REALM_MAX_BPNODE_SIZE) + "_23.realm";
+    util::to_string(REALM_MAX_BPNODE_SIZE) + "_23.realm";
 
     const size_t cnt = 10 * REALM_MAX_BPNODE_SIZE;
 
@@ -661,44 +661,121 @@ TEST_IF(Upgrade_Database_23, REALM_MAX_BPNODE_SIZE == 4 || REALM_MAX_BPNODE_SIZE
 
     SHARED_GROUP_TEST_PATH(temp_copy);
 
+    // string order changed in sets, and string indexes
+    // The strings will be sorted according to the old ordering using signed chars
+    std::vector<Mixed> set_values = {
+        1,         2.,     "John",  "Ringo", BinaryData("Paul"), BinaryData("George"), "Æ", "æ", "ÿ",
+        "Beatles", "john", "ringo", {}};
+    std::sort(set_values.begin(), set_values.end()); // using default Mixed::operator<
+
     // Make a copy of the database so that we keep the original file intact and unmodified
     File::copy(path, temp_copy);
     auto hist = make_in_realm_history();
     auto sg = DB::create(*hist, temp_copy);
     auto rt = sg->start_write();
+    // rt->to_json(std::cout);
     rt->verify();
 
-    auto t = rt->get_table("table");
-    auto target = rt->get_table("target");
-    auto col_link = t->get_column_key("link");
+    {
+        // checks on many backlinks
+        auto t = rt->get_table("table");
+        auto target = rt->get_table("target");
+        auto col_link = t->get_column_key("link");
 
-    auto target_obj = target->get_object_with_primary_key(1);
-    CHECK_EQUAL(target_obj.get_backlink_count(*t, col_link), cnt);
-    // This should cause an upgrade
-    auto o = t->create_object_with_primary_key(20000);
-    o.set(col_link, target_obj.get_key());
+        auto target_obj = target->get_object_with_primary_key(1);
+        CHECK_EQUAL(target_obj.get_backlink_count(*t, col_link), cnt);
+        // This should cause an upgrade
+        auto o = t->create_object_with_primary_key(20000);
+        o.set(col_link, target_obj.get_key());
 
-    // Check that we can delete all source objects
-    for (auto& obj : *t) {
-        obj.remove();
+        // Check that we can delete all source objects
+        for (auto& obj : *t) {
+            obj.remove();
+        }
+        CHECK_EQUAL(target_obj.get_backlink_count(*t, col_link), 0);
     }
-    CHECK_EQUAL(target_obj.get_backlink_count(*t, col_link), 0);
 
-    rt->verify();
+    {
+        // checks on string sorting and ordering
+        auto t = rt->get_table("table_for_mixed");
+        auto col_mixed_set = t->get_column_key("mixedSet");
+        auto col_string_set = t->get_column_key("stringSet");
+
+        auto obj = t->get_object_with_primary_key(1);
+
+        auto mixed_set = obj.get_set<Mixed>(col_mixed_set);
+        CHECK_EQUAL(mixed_set.size(), set_values.size());
+        for (size_t i = 0; i < mixed_set.size(); ++i) {
+            CHECK_EQUAL(mixed_set.get(i), set_values[i]);
+            CHECK_NOT_EQUAL(mixed_set.find(set_values[i]), realm::not_found);
+        }
+        auto string_set = obj.get_set<StringData>(col_string_set);
+        size_t string_i = 0;
+        for (size_t i = 0; i < set_values.size(); ++i) {
+            if (set_values[i].is_type(type_String) || set_values[i].is_null()) {
+                StringData val = set_values[i].get<StringData>();
+                CHECK_EQUAL(string_set.get(string_i++), val);
+                CHECK_NOT_EQUAL(string_set.find(val), realm::not_found);
+            }
+        }
+        CHECK_EQUAL(string_i, string_set.size());
+
+        auto t2 = rt->get_table("table2");
+        auto t2_col_id = t2->get_column_key("id");
+        auto t2_mixed_col = t2->get_column_key("mixed");
+
+        CHECK(t2->has_search_index(t2_col_id));
+        CHECK(t2->has_search_index(t2_mixed_col));
+        for (size_t i = 0; i < set_values.size(); ++i) {
+            if (set_values[i].is_type(type_String) || set_values[i].is_null()) {
+                CHECK_EQUAL(t2->where().equal(t2_col_id, set_values[i].get<StringData>()).count(), 1);
+                CHECK_EQUAL(t2->where().equal(t2_mixed_col, set_values[i]).count(), 1);
+                CHECK(t2->find_first(t2_col_id, set_values[i].get<StringData>()));
+                CHECK(t2->find_first(t2_mixed_col, set_values[i]));
+            }
+        }
+    }
 
 #else
-    // NOTE: This code must be executed from an old file-format-version 22
+    // NOTE: This code must be executed from an old file-format-version 23
     // core in order to create a file-format-version 10 test file!
 
     Group g;
-    TableRef t = g.add_table_with_primary_key("table", type_Int, "id", false);
-    TableRef target = g.add_table_with_primary_key("target", type_Int, "id", false);
-    auto col_link = t->add_column(*target, "link");
+    {
+        TableRef t = g.add_table_with_primary_key("table", type_Int, "id", false);
+        TableRef target = g.add_table_with_primary_key("target", type_Int, "id", false);
+        auto col_link = t->add_column(*target, "link");
 
-    auto target_key = target->create_object_with_primary_key(1).get_key();
-    for (int i = 0; i < cnt; i++) {
-        auto o = t->create_object_with_primary_key(i);
-        o.set(col_link, target_key);
+        auto target_key = target->create_object_with_primary_key(1).get_key();
+        for (int i = 0; i < cnt; i++) {
+            auto o = t->create_object_with_primary_key(i);
+            o.set(col_link, target_key);
+        }
+    }
+
+    {
+        TableRef t = g.add_table_with_primary_key("table_for_mixed", type_Int, "id", true);
+        auto col_mixed_set = t->add_column_set(type_Mixed, "mixedSet", true);
+        auto col_string_set = t->add_column_set(type_String, "stringSet", true);
+        Obj obj = t->create_object_with_primary_key(1);
+        auto mixed_set = obj.get_set<Mixed>(col_mixed_set);
+        auto string_set = obj.get_set<StringData>(col_string_set);
+        for (auto& val : set_values) {
+            mixed_set.insert(val);
+            if (val.is_type(type_String) || val.is_null()) {
+                string_set.insert(val.get<StringData>());
+            }
+        }
+
+        TableRef t2 = g.add_table_with_primary_key("table2", type_String, "id", true);
+        auto col_mixed = t2->add_column(type_Mixed, "mixed");
+        t2->add_search_index(col_mixed);
+        for (auto& val : set_values) {
+            if (val.is_type(type_String) || val.is_null()) {
+                auto obj = t2->create_object_with_primary_key(val.get<StringData>());
+                obj.set<Mixed>(col_mixed, val);
+            }
+        }
     }
     g.write(path);
 #endif // TEST_READ_UPGRADE_MODE
