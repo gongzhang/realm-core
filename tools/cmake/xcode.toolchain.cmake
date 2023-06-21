@@ -8,8 +8,23 @@ if(NOT DEFINED CMAKE_SYSTEM_NAME)
     set(CPACK_SYSTEM_NAME "\$ENV{PLATFORM_NAME}")
 endif()
 
-set(CMAKE_XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator macosx")
+set(CMAKE_XCODE_ATTRIBUTE_ARCHS "$(ARCHS_STANDARD)")
+set(CMAKE_XCODE_ATTRIBUTE_ENABLE_BITCODE "NO")
+set(CMAKE_XCODE_ATTRIBUTE_SUPPORTED_PLATFORMS "iphoneos iphonesimulator appletvos appletvsimulator watchos watchsimulator macosx xros xrsimulator")
 set(CMAKE_XCODE_EFFECTIVE_PLATFORMS "-iphoneos;-iphonesimulator;-appletvos;-appletvsimulator;-watchos;-watchsimulator;-maccatalyst")
+set(CMAKE_XCODE_ATTRIBUTE_SUPPORTS_MACCATALYST "YES")
+set(CMAKE_XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "1,2,3,4,7")
+
+# With Xcode 14+ the base SDK *mostly* doesn't matter any more, as it
+# officially supports multi-platform builds from a single target.
+# However, as of Xcode 15 beta 2 xcodebuild (but not Xcode itself) requires the
+# visionOS SDK to build for visionOS. Hopefully this is just a beta bug.
+# Xcode 13 requires using the correct SDK. We no longer support Xcode 13, but
+# still use it on evergreen to build the macOS tests (and nothing else).
+set(CMAKE_XCODE_ATTRIBUTE_SDKROOT_1500 "xros")
+set(CMAKE_XCODE_ATTRIBUTE_SDKROOT_1400 "iphoneos")
+set(CMAKE_XCODE_ATTRIBUTE_SDKROOT_1300 "macosx")
+set(CMAKE_XCODE_ATTRIBUTE_SDKROOT "$(SDKROOT_$(XCODE_VERSION_MAJOR))")
 
 set(CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET_1300 "9.0")
 set(CMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET_1400 "11.0")
