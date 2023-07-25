@@ -404,6 +404,16 @@ TEST_CASE("sync: client reset", "[sync][pbs][client reset][baas]") {
         REQUIRE(after->config().path == local_config.path);
         REQUIRE(after->current_transaction_version() > before->current_transaction_version());
     };
+    auto get_key_for_object_with_value = [&](TableRef table, int64_t value) -> ObjKey {
+        REQUIRE(table);
+        auto target = std::find_if(table->begin(), table->end(), [&](auto& it) -> bool {
+            return it.template get<Int>("value") == value;
+        });
+        if (target == table->end()) {
+            return {};
+        }
+        return target->get_key();
+    };
 
     Results results;
     Object object;
@@ -741,6 +751,70 @@ TEST_CASE("sync: client reset", "[sync][pbs][client reset][baas]") {
             REQUIRE(err.value()->is_client_reset_requested());
             REQUIRE(before_callback_invocations == 1);
             REQUIRE(after_callback_invocations == 0);
+        }
+
+        SECTION("add remotely deleted object to list") {
+            test_reset
+                ->setup([&](SharedRealm realm) {
+                    ObjKey k0 =
+                        create_object(*realm, "link target", ObjectId::gen(), partition).set("value", 1).get_key();
+                    create_object(*realm, "link target", ObjectId::gen(), partition).set("value", 2).get_key();
+                    create_object(*realm, "link target", ObjectId::gen(), partition).set("value", 3).get_key();
+                    Obj o = create_object(*realm, "link origin", ObjectId::gen(), partition);
+                    o.get_linklist("list").add(k0);
+                })
+                ->make_local_changes([&](SharedRealm local) {
+                    auto key1 = get_key_for_object_with_value(get_table(*local, "link target"), 1);
+                    auto key2 = get_key_for_object_with_value(get_table(*local, "link target"), 2);
+                    auto key3 = get_key_for_object_with_value(get_table(*local, "link target"), 3);
+                    auto table = get_table(*local, "link origin");
+                    auto list = table->begin()->get_linklist("list");
+                    list.add(key2);
+                    list.add(key3);
+                    list.set(0, key1);
+                    std::cout << "local changes: \n";
+                    table->to_json(std::cout, 2, {});
+                    std::cout << std::endl;
+                })
+                ->make_remote_changes([&](SharedRealm remote) {
+                    auto table = get_table(*remote, "link target");
+                    auto key = get_key_for_object_with_value(table, 2);
+                    REQUIRE(key);
+                    table->remove_object(key);
+                })
+                ->on_post_reset([&](SharedRealm realm) {
+                    REQUIRE_NOTHROW(realm->refresh());
+                    auto table = get_table(*realm, "link origin");
+                    auto target_table = get_table(*realm, "link target");
+                    table->to_json(std::cout, 2, {});
+                    std::cout << "target: \n";
+                    target_table->to_json(std::cout, 1, {});
+                    REQUIRE(table->size() == 1);
+                    REQUIRE(target_table->size() == 2);
+                    REQUIRE(get_key_for_object_with_value(target_table, 1));
+                    REQUIRE(get_key_for_object_with_value(target_table, 3));
+                    auto list = table->begin()->get_linklist("list");
+                    REQUIRE(list.size() == 2);
+                    REQUIRE(list.get_object(0).get<Int>("value") == 3);
+                    REQUIRE(list.get_object(1).get<Int>("value") == 3);
+                })
+                ->run();
+            //            {
+            //                auto config_3 = remote_config;
+            //                auto realm = Realm::get_shared_realm(config_3);
+            //                wait_for_download(*realm);
+            //                REQUIRE_NOTHROW(realm->refresh());
+            //                auto table = get_table(*realm, "link origin");
+            //                auto target_table = get_table(*realm, "link target");
+            //                REQUIRE(table->size() == 1);
+            //                REQUIRE(target_table->size() == 2);
+            //                REQUIRE(get_key_for_object_with_value(target_table, 1));
+            //                REQUIRE(get_key_for_object_with_value(target_table, 3));
+            //                auto list = table->begin()->get_linklist("list");
+            //                REQUIRE(list.size() == 2);
+            //                REQUIRE(list.get_object(0).get<Int>("value") == 3);
+            //                REQUIRE(list.get_object(1).get<Int>("value") == 3);
+            //            }
         }
     } // end recovery section
 
@@ -1486,17 +1560,6 @@ TEST_CASE("sync: client reset", "[sync][pbs][client reset][baas]") {
                 })
                 ->run();
         }
-
-        auto get_key_for_object_with_value = [&](TableRef table, int64_t value) -> ObjKey {
-            REQUIRE(table);
-            auto target = std::find_if(table->begin(), table->end(), [&](auto& it) -> bool {
-                return it.template get<Int>("value") == value;
-            });
-            if (target == table->end()) {
-                return {};
-            }
-            return target->get_key();
-        };
 
         SECTION("link to remotely deleted object") {
             test_reset
