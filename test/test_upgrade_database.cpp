@@ -652,7 +652,7 @@ TEST_IF(Upgrade_Database_23, REALM_MAX_BPNODE_SIZE == 4 || REALM_MAX_BPNODE_SIZE
 {
     // We should test that we can convert backlink arrays bigger that node size to BPlusTrees
     std::string path = test_util::get_test_resource_path() + "test_upgrade_database_" +
-    util::to_string(REALM_MAX_BPNODE_SIZE) + "_23.realm";
+                       util::to_string(REALM_MAX_BPNODE_SIZE) + "_23.realm";
 
     const size_t cnt = 10 * REALM_MAX_BPNODE_SIZE;
 
