@@ -41,7 +41,6 @@
 using namespace realm;
 using namespace realm::util;
 
-static const std::string dummy_auth_url = "https://realm.example.org";
 static const std::string dummy_device_id = "123400000000000000000000";
 
 TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
@@ -56,9 +55,8 @@ TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
     SECTION("a SyncUser can properly retrieve its owned sessions") {
         std::string path_1;
         std::string path_2;
-        auto user =
-            app->sync_manager()->get_user("user1a", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                          ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+        auto user = app->sync_manager()->get_user("user1a", ENCODE_FAKE_JWT("fake_refresh_token"),
+                                                  ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
         auto session1 = sync_session(
             user, "/test1a-1", [](auto, auto) {}, SyncSessionStopPolicy::AfterChangesUploaded, &path_1);
         auto session2 = sync_session(
@@ -78,9 +76,8 @@ TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
     }
 
     SECTION("a SyncUser properly unbinds its sessions upon logging out") {
-        auto user =
-            app->sync_manager()->get_user("user1b", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                          ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+        auto user = app->sync_manager()->get_user("user1b", ENCODE_FAKE_JWT("fake_refresh_token"),
+                                                  ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
         auto session1 = sync_session(user, "/test1b-1", [](auto, auto) {});
         auto session2 = sync_session(user, "/test1b-2", [](auto, auto) {});
         EventLoop::main().run_until([&] {
@@ -98,9 +95,8 @@ TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
 
     SECTION("a SyncUser defers binding new sessions until it is logged in") {
         const std::string user_id = "user1c";
-        auto user =
-            app->sync_manager()->get_user(user_id, ENCODE_FAKE_JWT("fake_refresh_token"),
-                                          ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+        auto user = app->sync_manager()->get_user(user_id, ENCODE_FAKE_JWT("fake_refresh_token"),
+                                                  ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
         user->log_out();
         REQUIRE(user->state() == SyncUser::State::LoggedOut);
         auto session1 = sync_session(user, "/test1c-1", [](auto, auto) {});
@@ -112,7 +108,7 @@ TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
         REQUIRE(user->all_sessions().size() == 0);
         // Log the user back in via the sync manager.
         user = app->sync_manager()->get_user(user_id, ENCODE_FAKE_JWT("fake_refresh_token"),
-                                             ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+                                             ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
         EventLoop::main().run_until([&] {
             return sessions_are_active(*session1, *session2);
         });
@@ -121,9 +117,8 @@ TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
 
     SECTION("a SyncUser properly rebinds existing sessions upon logging back in") {
         const std::string user_id = "user1d";
-        auto user =
-            app->sync_manager()->get_user(user_id, ENCODE_FAKE_JWT("fake_refresh_token"),
-                                          ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+        auto user = app->sync_manager()->get_user(user_id, ENCODE_FAKE_JWT("fake_refresh_token"),
+                                                  ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
         auto session1 = sync_session(user, "/test1d-1", [](auto, auto) {});
         auto session2 = sync_session(user, "/test1d-2", [](auto, auto) {});
         // Make sure the sessions are bound.
@@ -141,7 +136,7 @@ TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
         REQUIRE(user->all_sessions().size() == 0);
         // Log the user back in via the sync manager.
         user = app->sync_manager()->get_user(user_id, ENCODE_FAKE_JWT("fake_refresh_token"),
-                                             ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+                                             ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
         EventLoop::main().run_until([&] {
             return sessions_are_active(*session1, *session2);
         });
@@ -153,9 +148,8 @@ TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
         std::weak_ptr<SyncSession> weak_session;
         std::string on_disk_path;
         util::Optional<SyncConfig> config;
-        auto user =
-            app->sync_manager()->get_user("user1e", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                          ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+        auto user = app->sync_manager()->get_user("user1e", ENCODE_FAKE_JWT("fake_refresh_token"),
+                                                  ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
         {
             // Create the session within a nested scope, so we can control its lifetime.
             auto session = sync_session(
@@ -181,9 +175,8 @@ TEST_CASE("SyncSession: management by SyncUser", "[sync][session]") {
     }
 
     SECTION("a user can create multiple sessions for the same URL") {
-        auto user =
-            app->sync_manager()->get_user("user", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                          ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+        auto user = app->sync_manager()->get_user("user", ENCODE_FAKE_JWT("fake_refresh_token"),
+                                                  ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
         auto create_session = [&]() {
             // Note that this should put the sessions at different paths.
             return sync_session(
@@ -202,7 +195,7 @@ TEST_CASE("sync: log-in", "[sync][session]") {
     TestSyncManager init_sync_manager;
     auto app = init_sync_manager.app();
     auto user = app->sync_manager()->get_user("user", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
 
     SECTION("Can log in") {
         std::atomic<int> error_count(0);
@@ -228,8 +221,7 @@ TEST_CASE("SyncSession: close() API", "[sync][session]") {
     TestSyncManager init_sync_manager;
     auto app = init_sync_manager.app();
     auto user = app->sync_manager()->get_user("close-api-tests-user", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                              ENCODE_FAKE_JWT("fake_access_token"), "https://realm.example.org",
-                                              dummy_device_id);
+                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
 
     SECTION("Behaves properly when called on session in the 'active' or 'inactive' state") {
         auto session = sync_session(
@@ -260,8 +252,7 @@ TEST_CASE("SyncSession: pause()/resume() API", "[sync][session]") {
     TestSyncManager init_sync_manager;
     auto app = init_sync_manager.app();
     auto user = app->sync_manager()->get_user("close-api-tests-user", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                              ENCODE_FAKE_JWT("fake_access_token"), "https://realm.example.org",
-                                              dummy_device_id);
+                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
 
     auto session = sync_session(
         user, "/test-close-for-active", [](auto, auto) {}, SyncSessionStopPolicy::AfterChangesUploaded);
@@ -316,8 +307,7 @@ TEST_CASE("SyncSession: shutdown_and_wait() API", "[sync][session]") {
     TestSyncManager init_sync_manager;
     auto app = init_sync_manager.app();
     auto user = app->sync_manager()->get_user("close-api-tests-user", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                              ENCODE_FAKE_JWT("fake_access_token"), "https://realm.example.org",
-                                              dummy_device_id);
+                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
 
     SECTION("Behaves properly when called on session in the 'active' or 'inactive' state") {
         auto session = sync_session(
@@ -342,7 +332,7 @@ TEST_CASE("SyncSession: update_configuration()", "[sync][session]") {
     TestSyncManager init_sync_manager({}, {false});
     auto app = init_sync_manager.app();
     auto user = app->sync_manager()->get_user("userid", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
     auto session = sync_session(
         user, "/update_configuration", [](auto, auto) {}, SyncSessionStopPolicy::AfterChangesUploaded);
 
@@ -386,8 +376,7 @@ TEST_CASE("sync: error handling", "[sync][session]") {
     const std::string user_id = "user1d";
     std::string on_disk_path;
     auto user = app->sync_manager()->get_user(user_id, ENCODE_FAKE_JWT("fake_refresh_token"),
-                                              ENCODE_FAKE_JWT("fake_access_token"), "https://realm.example.org",
-                                              dummy_device_id);
+                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
     auto session = sync_session(
         user, "/test1e",
         [&](auto session, SyncError error) {
@@ -454,13 +443,12 @@ struct RegularUser {
     static auto user(std::shared_ptr<SyncManager> sync_manager)
     {
         return sync_manager->get_user("user-dying-state", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                      ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+                                      ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
     }
 };
 
 TEMPLATE_TEST_CASE("sync: stop policy behavior", "[sync][session]", RegularUser)
 {
-    const std::string dummy_auth_url = "https://realm.example.org";
     if (!EventLoop::has_implementation())
         return;
 
@@ -584,7 +572,7 @@ TEST_CASE("session restart", "[sync][session]") {
     };
 
     auto user = app->sync_manager()->get_user("userid", ENCODE_FAKE_JWT("fake_refresh_token"),
-                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_auth_url, dummy_device_id);
+                                              ENCODE_FAKE_JWT("fake_access_token"), dummy_device_id);
     auto session = sync_session(
         user, "/test-restart", [&](auto, auto) {}, SyncSessionStopPolicy::AfterChangesUploaded, nullptr, schema,
         &config);
