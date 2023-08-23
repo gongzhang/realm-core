@@ -6644,10 +6644,10 @@ TEST(Sync_NonIncreasingServerVersions)
 
     uint_fast64_t downloadable_bytes = 0;
     VersionInfo version_info;
-    util::StderrLogger logger;
+    auto logger = util::Logger::get_default_logger();
     auto transact = db->start_read();
     history.integrate_server_changesets(progress, &downloadable_bytes, server_changesets_encoded, version_info,
-                                        DownloadBatchState::SteadyState, logger, transact);
+                                        DownloadBatchState::SteadyState, *logger, transact);
 }
 
 TEST(Sync_InvalidChangesetFromServer)
@@ -6672,10 +6672,10 @@ TEST(Sync_InvalidChangesetFromServer)
     server_changeset.data = BinaryData(encoded.data(), encoded.size());
 
     VersionInfo version_info;
-    util::StderrLogger logger;
+    auto logger = util::Logger::get_default_logger();
     auto transact = db->start_read();
     CHECK_THROW_EX(history.integrate_server_changesets({}, nullptr, util::Span(&server_changeset, 1), version_info,
-                                                       DownloadBatchState::SteadyState, logger, transact),
+                                                       DownloadBatchState::SteadyState, *logger, transact),
                    sync::IntegrationException,
                    StringData(e.what()).contains("Failed to parse received changeset: Invalid interned string"));
 }
@@ -6791,10 +6791,10 @@ TEST(Sync_SetAndGetEmptyReciprocalChangeset)
 
     uint_fast64_t downloadable_bytes = 0;
     VersionInfo version_info;
-    util::StderrLogger logger;
+    auto logger = util::Logger::get_default_logger();
     auto transact = db->start_read();
     history.integrate_server_changesets(progress, &downloadable_bytes, server_changesets_encoded, version_info,
-                                        DownloadBatchState::SteadyState, logger, transact);
+                                        DownloadBatchState::SteadyState, *logger, transact);
 
     bool is_compressed = false;
     auto data = history.get_reciprocal_transform(latest_local_version, is_compressed);
@@ -6937,10 +6937,10 @@ TEST(Sync_ServerVersionsSkippedFromDownloadCursor)
 
     uint_fast64_t downloadable_bytes = 0;
     VersionInfo version_info;
-    util::StderrLogger logger;
+    auto logger = util::Logger::get_default_logger();
     auto transact = db->start_read();
     history.integrate_server_changesets(progress, &downloadable_bytes, server_changesets_encoded, version_info,
-                                        DownloadBatchState::SteadyState, logger, transact);
+                                        DownloadBatchState::SteadyState, *logger, transact);
 
     version_type current_version;
     SaltedFileIdent file_ident;
