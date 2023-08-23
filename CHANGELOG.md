@@ -19,6 +19,7 @@
 ### Internals
 * Add information about the reason a synchronization session is used for to flexible sync client BIND message. ([PR #6902](https://github.com/realm/realm-core/pull/6902))
 * Sync protocol version bumped to 10. ([PR #6902](https://github.com/realm/realm-core/pull/6902))
+* Update tests to use global logger. ([PR #6917](https://github.com/realm/realm-core/pull/6917))
 
 ----------------------------------------------
 
