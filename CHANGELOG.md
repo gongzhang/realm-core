@@ -6,7 +6,7 @@
 
 ### Fixed
 * <How do the end-user experience this issue? what was the impact?> ([#????](https://github.com/realm/realm-core/issues/????), since v?.?.?)
-* None.
+* realm/sync/network/websocket_error.hpp was missing from the install package (since v13.18.0).
 
 ### Breaking changes
 * None.
