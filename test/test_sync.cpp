@@ -5849,9 +5849,12 @@ NONCONCURRENT_TEST_TYPES(Sync_PrimaryKeyTypes, Int, String, ObjectId, UUID, util
 TEST(Sync_Mixed)
 {
     // Test replication and synchronization of Mixed values and lists.
-
-    TEST_CLIENT_DB(db_1);
-    TEST_CLIENT_DB(db_2);
+    DBOptions options;
+    options.logger = test_context.logger;
+    SHARED_GROUP_TEST_PATH(db_1_path);
+    SHARED_GROUP_TEST_PATH(db_2_path);
+    auto db_1 = DB::create(make_client_replication(), db_1_path, options);
+    auto db_2 = DB::create(make_client_replication(), db_2_path, options);
 
     TEST_DIR(dir);
     fixtures::ClientServerFixture fixture{dir, test_context};
@@ -6711,10 +6714,12 @@ TEST(Sync_BundledRealmFile)
 
 TEST(Sync_UpgradeToClientHistory)
 {
-    SHARED_GROUP_TEST_PATH(db1_path);
-    SHARED_GROUP_TEST_PATH(db2_path);
-    auto db_1 = DB::create(make_in_realm_history(), db1_path);
-    auto db_2 = DB::create(make_in_realm_history(), db2_path);
+    DBOptions options;
+    options.logger = test_context.logger;
+    SHARED_GROUP_TEST_PATH(db_1_path);
+    SHARED_GROUP_TEST_PATH(db_2_path);
+    auto db_1 = DB::create(make_in_realm_history(), db_1_path, options);
+    auto db_2 = DB::create(make_in_realm_history(), db_2_path, options);
     {
         auto tr = db_1->start_write();
 
