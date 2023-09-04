@@ -269,7 +269,8 @@ private:
                                                std::shared_ptr<util::Scheduler> scheduler = nullptr)
         REQUIRES(m_realm_mutex);
     void do_get_realm(Realm::Config&& config, std::shared_ptr<Realm>& realm, util::Optional<VersionID> version,
-                      util::CheckedUniqueLock& realm_lock, bool first_time_open = false) REQUIRES(m_realm_mutex);
+                      util::CheckedUniqueLock& realm_lock, std::optional<bool> first_time_open = none)
+        REQUIRES(m_realm_mutex);
     void run_async_notifiers() REQUIRES(!m_notifier_mutex, m_running_notifiers_mutex);
     void clean_up_dead_notifiers() REQUIRES(m_notifier_mutex);
 

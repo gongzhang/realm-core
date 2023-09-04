@@ -3797,7 +3797,6 @@ TEST_CASE("flx: open realm + register subscription callack while bootstrapping",
     }
 
     SECTION("Sync Open + Async Open") {
-
         {
             subscription_invoked = false;
             config.sync_config->subscription_initializer = init_subscription_callback;
@@ -3843,6 +3842,9 @@ TEST_CASE("flx: open realm + register subscription callack while bootstrapping",
             async_open->start(open_realm_completed_callback);
             REQUIRE(open_realm_pf.future.get());
             REQUIRE(subscription_pf_async.future.get());
+            auto realm = Realm::get_shared_realm(config);
+            REQUIRE(realm->get_latest_subscription_set().version() == 2);
+            REQUIRE(realm->get_active_subscription_set().version() == 2);
         }
     }
 
@@ -3903,12 +3905,12 @@ TEST_CASE("flx: open realm + register subscription callack while bootstrapping",
 
         SECTION("rerun on open set for multiple async open tasks (subscription runs only once)") {
             auto subscription_pf = util::make_promise_future<bool>();
-            std::atomic<int> cnt = 0;
+            std::atomic<int> init_sub_cnt = 0;
             auto init_subscription_callback =
                 [&, promise_holder = util::CopyablePromiseHolder(std::move(subscription_pf.promise))](
                     std::shared_ptr<Realm> realm) mutable {
-                    cnt += 1;
-                    REQUIRE(cnt == 1);
+                    init_sub_cnt += 1;
+                    REQUIRE(init_sub_cnt.load() == 1);
                     REQUIRE(realm);
                     auto table = realm->read_group().get_table("class_TopLevel");
                     Query query(table);
@@ -3922,13 +3924,6 @@ TEST_CASE("flx: open realm + register subscription callack while bootstrapping",
             config.sync_config->rerun_init_subscription_on_open = true;
 
             auto async_open_task1 = Realm::get_synchronized_realm(config);
-
-            // I need to investigate this further. Since there is a chance that:
-            // task 1 runs after task2 and it is constructed with m_first_db_open == true
-            // task 2 is constructed with m_first_db_open == false but the transaction version is 0
-            // both tasks now will run the subscription callback, which does not seem correct.
-
-            config.sync_config->rerun_init_subscription_on_open = false;
             auto async_open_task2 = Realm::get_synchronized_realm(config);
 
             auto open_t1_pf = util::make_promise_future<SharedRealm>();
@@ -3954,14 +3949,15 @@ TEST_CASE("flx: open realm + register subscription callack while bootstrapping",
             async_open_task1->start(open_callback_task_1);
             async_open_task2->start(open_callback_task_2);
 
-            // subscription init called only once but realm opened twice
             auto realm1 = open_t1_pf.future.get();
             auto realm2 = open_t2_pf.future.get();
+            REQUIRE(subscription_pf.future.get());
+            // subscription init called only once but realm opened twice
+            REQUIRE(init_sub_cnt.load() == 1);
             REQUIRE(realm1->get_latest_subscription_set().version() == 1);
             REQUIRE(realm1->get_active_subscription_set().version() == 1);
             REQUIRE(realm2->get_latest_subscription_set().version() == 1);
             REQUIRE(realm2->get_active_subscription_set().version() == 1);
-            REQUIRE(subscription_pf.future.get());
         }
     }
 }
