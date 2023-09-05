@@ -33,7 +33,8 @@ public:
         // This only supports running on the default loop, i.e. the main thread.
         // This suffices for node and for our tests, but in the future we may
         // need a way to pass in a target loop.
-        int err = uv_async_init(uv_default_loop(), m_handle.get(), [](uv_async_t* handle) {
+        auto loop = std::make_unique<uv_loop_t>();
+        int err = uv_async_init(loop.get(), m_handle.get(), [](uv_async_t* handle) {
             if (!handle->data) {
                 return;
             }
@@ -52,6 +53,7 @@ public:
             throw std::runtime_error(util::format("uv_async_init failed: %1", uv_strerror(err)));
         }
         m_handle->data = new Data;
+        m_loop.swap(loop);
     }
 
     ~UvMainLoopScheduler()
@@ -92,6 +94,7 @@ private:
     };
     std::unique_ptr<uv_async_t> m_handle;
     std::thread::id m_id = std::this_thread::get_id();
+    std::unique_ptr<uv_loop_t> m_loop;
 };
 
 } // namespace realm::util
