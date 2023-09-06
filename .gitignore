@@ -90,3 +90,7 @@ compile_commands.json
 # Swift package manager
 /.swiftpm
 /.build
+
+_CPack_Packages
+core
+realm-*
