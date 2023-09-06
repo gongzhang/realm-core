@@ -39,7 +39,7 @@ shift $((OPTIND-1))
 platforms=(macosx)
 device_platforms=()
 if [[ -z $MACOS_ONLY ]]; then
-    device_platforms=(iphoneos iphonesimulator watchos watchsimulator appletvos appletvsimulator maccatalyst)
+    device_platforms=(iphoneos iphonesimulator watchos watchsimulator maccatalyst)
     if ! clang --version | grep -q 'Apple clang version 1[34]'; then
         device_platforms+=(xros xrsimulator)
     fi
@@ -190,8 +190,8 @@ EOF
             add_to_xcframework "$xcf" "$library" "ios" "maccatalyst" "$bt"
             add_to_xcframework "$xcf" "$library" "watchos" "watchos" "$bt"
             add_to_xcframework "$xcf" "$library" "watchos" "watchsimulator" "$bt"
-            add_to_xcframework "$xcf" "$library" "tvos" "appletvos" "$bt"
-            add_to_xcframework "$xcf" "$library" "tvos" "appletvsimulator" "$bt"
+            # add_to_xcframework "$xcf" "$library" "tvos" "appletvos" "$bt"
+            # add_to_xcframework "$xcf" "$library" "tvos" "appletvsimulator" "$bt"
             if find core -name '*xros*' | grep -q xros; then
                 add_to_xcframework "$xcf" "$library" "xros" "xros" "$bt"
                 add_to_xcframework "$xcf" "$library" "xros" "xrsimulator" "$bt"
