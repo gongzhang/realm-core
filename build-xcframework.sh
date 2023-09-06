@@ -19,3 +19,4 @@ case $answer in
 esac
 
 ./tools/build-cocoa.sh -b
+open .
