@@ -21,8 +21,10 @@ esac
 ./tools/build-cocoa.sh -b
 
 # rename to standard name
-# realm-monorepo-xcframework-v12.4.0-7-g0b90cacec.tar.xz => realm-core-12.4.0-xcframework.tar.xz
-SEMVER=$(git describe | cut -d'-' -f1 | cut -c2-)
-mv "realm-monorepo-xcframework-$VERSION.tar.xz" "realm-core-$SEMVER-xcframework.tar.xz"
+mv "realm-monorepo-xcframework-$VERSION.tar.xz" "realm-core-xcframework.tar.xz"
 
+echo ""
+echo "Notes:"
+echo "Remember to upload the tar to https://github.com/gongzhang/realm-core/releases"
+echo "The corresponding files in realm-swift repo are 'dependencies.list' and 'scripts/download-core.sh'"
 open .
