@@ -75,7 +75,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "export PATH=\"/opt/homebrew/bin:$PATH\"\n\nif ! command -v cmake &> /dev/null\nthen\n    echo \"cmake could not be found.\"\n    exit 1\nfi\n\n\"${PROJECT_DIR}/tools/build-cocoa.sh\" -b\n";
+			shellScript = "export PATH=\"/opt/homebrew/bin:$PATH\"\n\nif ! command -v cmake &> /dev/null\nthen\n    echo \"cmake could not be found.\"\n    exit 1\nfi\n\nenv -i PROJECT_DIR=\"${PROJECT_DIR}\" PATH=\"$PATH\" /bin/sh -c '\"${PROJECT_DIR}/tools/build-cocoa.sh\" -b'\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
