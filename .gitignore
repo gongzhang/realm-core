@@ -95,3 +95,6 @@ _CPack_Packages
 core
 realm-*
 !build-xcframework.sh
+
+# Xcode
+xcuserdata
