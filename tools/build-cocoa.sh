@@ -68,7 +68,7 @@ if [[ -n $BUILD ]]; then
     for os in "${device_platforms[@]}"; do
         for bt in "${BUILD_TYPES[@]}"; do
 
-            if [ "${os}" == 'xros' || [ "${os}" == 'xrsimulator' ]; then
+            if [ "${os}" == 'xros' ] || [ "${os}" == 'xrsimulator' ]; then
                 # 为 xrOS 构建时临时强制使用 Xcode-beta
                 original_developer_dir="${DEVELOPER_DIR}"
                 export DEVELOPER_DIR="/Applications/Xcode-beta.app/Contents/Developer"
