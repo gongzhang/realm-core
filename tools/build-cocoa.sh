@@ -70,13 +70,13 @@ if [[ -n $BUILD ]]; then
 
             if [ "${os}" == 'xros' ] || [ "${os}" == 'xrsimulator' ]; then
                 # 为 xrOS 构建时临时强制使用 Xcode-beta
-                original_developer_dir="${DEVELOPER_DIR}"
-                export DEVELOPER_DIR="/Applications/Xcode-beta.app/Contents/Developer"
+                # original_developer_dir="${DEVELOPER_DIR}"
+                # export DEVELOPER_DIR="/Applications/Xcode-beta.app/Contents/Developer"
                 
                 ./tools/build-apple-device.sh -p "${os}" -c "${bt}" -f "${CMAKE_FLAGS}"
 
                 # 恢复原始的DEVELOPER_DIR值
-                export DEVELOPER_DIR="${original_developer_dir}"
+                # export DEVELOPER_DIR="${original_developer_dir}"
             else
                 ./tools/build-apple-device.sh -p "${os}" -c "${bt}" -f "${CMAKE_FLAGS}"
             fi
