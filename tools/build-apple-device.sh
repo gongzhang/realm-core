@@ -54,7 +54,12 @@ cmake \
     -G Xcode \
     ..
 
-xcodebuild -scheme ALL_BUILD -configuration ${buildType} -destination "${buildDestination}"
+if [ "${platform}" == 'watchos' ]; then
+    # FIXME: this is a workaround for a compiler bug in Xcode 15.3 + physical Apple Watch
+    xcodebuild -scheme ALL_BUILD -configuration ${buildType} -destination "${buildDestination}" GCC_OPTIMIZATION_LEVEL=2
+else
+    xcodebuild -scheme ALL_BUILD -configuration ${buildType} -destination "${buildDestination}"
+fi
 
 function combine_library() {
     local path="$1"
