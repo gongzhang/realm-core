@@ -18,6 +18,7 @@ case $answer in
         ;;
 esac
 
+# NOTE: if cmake error occurs, try to remove existing _CPack_Packages, build-macosx, and build-xcode-platforms
 ./tools/build-cocoa.sh -b
 
 # rename to standard name
